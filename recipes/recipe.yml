@@ -1,22 +1,100 @@
 ---
-# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # image will be published to ghcr.io/<user>/<name>
-name: template
-# description will be included in the image's metadata
-description: This is my personal OS image.
+name: f43-silverblue-sp4
 
-# the base image to build on top of (FROM) and the version tag to use
+description: My personal blue-build image based on fedora silverblue 43 for Sutface Pro 4
+
 base-image: ghcr.io/ublue-os/silverblue-main
-image-version: latest # You can pin to a specific version of Fedora as well
+image-version: 43
 
 # module configuration, executed in order
 # you can include multiple instances of the same module
 modules:
+
+  # 1) Copy everything in ./files/system to image root /
   - type: files
     files:
       - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
+        destination: /
 
+  # 2) Remove the stock Fedora kernel (script lives in files/scripts/)
+  - type: script
+    scripts:
+      - remove-stock-kernel.sh
+
+  # 3) Add the linux-surface repo and install kernel + Surface utilities + Mullvad VPN
+  - type: dnf
+    repos:
+      files:
+        - https://pkg.surfacelinux.com/fedora/linux-surface.repo
+        - https://repository.mullvad.net/rpm/stable/mullvad.repo
+      cleanup: true
+    install:
+      allow-erasing: true
+      packages:
+        - kernel-surface
+        - iptsd
+        - libwacom-surface
+        - libwacom-surface-data
+        - surface-secureboot
+        - surface-control
+        - mullvad-vpn
+
+  # 4) RPM Fusion (free + nonfree): codecs and Intel iHD driver
+  - type: dnf
+    repos:
+      nonfree: rpmfusion
+    install:
+      allow-erasing: true   # swaps ffmpeg-free for RPM Fusion's ffmpeg
+      packages:
+        - ffmpeg                          # RPM Fusion free
+        - ffmpeg-libs                     # RPM Fusion free
+        - libavcodec-freeworld            # RPM Fusion free
+        - gstreamer1-plugins-bad-freeworld # RPM Fusion free
+        - gstreamer1-plugins-ugly         # RPM Fusion free
+        - intel-media-driver              # RPM Fusion nonfree (Skylake iHD VA-API)
+
+  # 5) Fedora repos: hardware, camera, audio, dev tools
+  - type: dnf
+    install:
+      skip-unavailable: true
+      packages:
+        # sensors / power
+        - iio-sensor-proxy
+        - thermald
+        - powertop
+        - lm_sensors
+        # camera
+        - libcamera
+        - libcamera-ipa
+        - libcamera-tools
+        - libcamera-gstreamer
+        - pipewire-plugin-libcamera
+        # video / audio
+        - libva-utils
+        - gstreamer1-plugin-libav
+        - gstreamer1-vaapi
+        - pipewire-codec-aptx
+        - alsa-utils
+        # network
+        - iw
+        - net-tools
+        # containers + dev
+        - distrobox
+        - toolbox
+        - podman
+        - moby-engine
+        - docker-compose
+        - git
+        - python3
+        - python3-pip
+        - python3-setuptools
+        - python3-devel
+        - python3-venv
+        - openssh-clients
+        - btop
+
+  # 6) Some default tweaks
   - type: dnf
     repos:
       copr:
@@ -27,10 +105,8 @@ modules:
         - starship
     remove:
       packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
         - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+        - firefox-langpacks
 
   - type: default-flatpaks
     configurations:
@@ -40,6 +116,34 @@ modules:
         install: # system flatpaks we want all users to have and not remove
           - org.mozilla.firefox
           - org.gnome.Loupe
+          - com.brave.Browser
+          - com.spotify.Client
+          - org.telegram.desktop
+          - com.github.tchx84.Flatseal
+          - md.obsidian.Obsidian
+          - com.mattjakeman.ExtensionManager
+          - it.mijorus.gearlever
+          - com.visualstudio.code
+          - org.libreoffice.LibreOffice
+          - com.ktechpit.whatsie
+          - dev.vencord.Vesktop
+          - com.github.unrud.VideoDownloader
+          - io.github.celluloid_player.Celluloid
       - scope: user # Also add Flathub user repo, but no user packages
 
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  # 7) Enable necessary things
+  - type: systemd
+    system:
+      enabled:
+        - thermald.service
+        - docker.socket
+        - iio-sensor-proxy.service
+        - mullvad-daemon.service
+        - mullvad-early-boot-blocking.service
+
+  # 8) Rebuild initramfs for the new kernel (must be last before signing)
+  - type: script
+    scripts:
+      - regen-initramfs.sh
+
+  - type: signing
