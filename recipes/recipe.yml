@@ -138,7 +138,12 @@ modules:
         - mullvad-daemon.service
         - mullvad-early-boot-blocking.service
 
-  # 8) Rebuild initramfs for the new kernel (must be last before signing)
+  # 8) Script to fix the iptsd service for pen stopping after boot
+  - type: script
+    scripts:
+      - iptsd-fix.sh
+
+  # 9) Rebuild initramfs for the new kernel (must be last before signing)
   - type: script
     scripts:
       - regen-initramfs.sh

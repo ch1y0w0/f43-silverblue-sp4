@@ -1,0 +1,11 @@
+[Unit]
+Description=IPTS touch and pen daemon (persistent)
+After=systemd-udevd.service
+
+[Service]
+ExecStart=/bin/sh -c 'for d in /dev/hidraw*; do /usr/bin/iptsd-check-device --quiet "$d" && exec /usr/bin/iptsd "$d"; done; exit 1'
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
