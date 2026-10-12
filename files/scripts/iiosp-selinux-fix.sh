@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Fixes the iio-sensor-proxy selinux block
-# Basically selinux won't let the iio-sensor-proxy to read and change the orientation
+# Mark the iio-sensor-proxy SELinux domain permissive (denials are logged, not enforced)
 set -oue pipefail
 
-semanager permissive -a iiosensorproxy_t
-systemctl restart iio-sensor-proxy.service
+cat > /tmp/iiosp-permissive.cil <<'EOF'
+(typepermissive iiosensorproxy_t)
+EOF
+
+semodule -n -i /tmp/iiosp-permissive.cil
+rm -f /tmp/iiosp-permissive.cil
