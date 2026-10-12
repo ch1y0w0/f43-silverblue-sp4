@@ -90,16 +90,21 @@ modules:
         - python3-setuptools
         - openssh-clients
         - btop
+        # utilities
+        - fira-code-fonts
+        - gnome-tweaks
 
   # 6) Some default tweaks
   - type: dnf
     repos:
       copr:
         - atim/starship
+        - atim/ubuntu-fonts
     install:
       packages:
         - micro
         - starship
+        - ubuntu-family-fonts
     remove:
       packages:
         - firefox
@@ -143,7 +148,18 @@ modules:
     scripts:
       - iptsd-fix.sh
 
-  # 9) Rebuild initramfs for the new kernel (must be last before signing)
+  # 9) Script to fix selinux preventing iio-sensor-proxy from reading and changing orientation
+  - type: script
+    scripts:
+      - iiosp-selinux-fix.sh
+
+  # 10) Custom iptsd.conf
+  - type: files
+    files:
+      - source: system/etc/iptsd.conf
+        destination: /etc/iptsd.conf
+
+  # 11) Rebuild initramfs for the new kernel (must be last before signing)
   - type: script
     scripts:
       - regen-initramfs.sh
