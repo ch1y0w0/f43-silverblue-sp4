@@ -124,10 +124,10 @@ modules:
 
   - type: default-flatpaks
     configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
+      # System-wide Flatpaks (available to all users)
+      - notify: true
         scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
+        install:
           - org.gnome.Loupe
           - com.github.tchx84.Flatseal
           - com.mattjakeman.ExtensionManager
@@ -135,7 +135,11 @@ modules:
           - org.libreoffice.LibreOffice
           - io.github.celluloid_player.Celluloid
           - org.gnome.Snapshot
-        scope: user # Also add Flathub user repo
+
+      # User Flatpaks (installed per-user)
+      - notify: true
+        scope: user
+        install:
           - org.mozilla.firefox
           - com.brave.Browser
           - com.spotify.Client
@@ -176,6 +180,11 @@ modules:
     files:
       - source: system/etc/iptsd.conf
         destination: /etc/iptsd.conf
+
+  # 12) Apply custom Whitesur themes# 10) Custom fix for the camera
+  - type: script
+    scripts:
+      - install-whitesur.sh
 
   # 12) Rebuild initramfs for the new kernel (must be last before signing)
   - type: script
