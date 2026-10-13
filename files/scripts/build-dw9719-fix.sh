@@ -1,20 +1,27 @@
 #!/usr/bin/env bash
-# Script to fix the dropped camera table from kernel
 set -euo pipefail
 
 KERNEL=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-surface)
 echo "Building fixed dw9719 for kernel $KERNEL"
 
-mkdir -p /tmp/dw9719-fix
-cd /tmp/dw9719-fix
+WORKDIR=/tmp/dw9719-fix
+rm -rf "$WORKDIR"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
 
-# Get the source that matches the kernel
-curl -L -o dw9719.c \
+# Download the exact source that matches the kernel series
+curl -fsSL -o dw9719.c \
   "https://raw.githubusercontent.com/linux-surface/kernel/v6.19-surface/drivers/media/i2c/dw9719.c"
 
-# Apply the two missing pieces
-cat >> dw9719.c << 'EOF'
+# ---------------------------------------------------------------
+# 1. Insert the i2c_device_id table RIGHT AFTER the of_table
+# ---------------------------------------------------------------
+# Find the line with MODULE_DEVICE_TABLE(of, ...) and insert after it
+python3 - <<'PY'
+from pathlib import Path
+src = Path("dw9719.c").read_text()
 
+table = '''
 static const struct i2c_device_id dw9719_id_table[] = {
 	{ .name = "dw9718s", .driver_data = (kernel_ulong_t)DW9718S },
 	{ .name = "dw9719",  .driver_data = (kernel_ulong_t)DW9719  },
@@ -23,24 +30,48 @@ static const struct i2c_device_id dw9719_id_table[] = {
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, dw9719_id_table);
-EOF
+'''
 
-# Insert .id_table into the driver struct (simple reliable way)
-sed -i 's/\.probe = dw9719_probe,/\.probe = dw9719_probe,\n\t.id_table = dw9719_id_table,/' dw9719.c
+marker = "MODULE_DEVICE_TABLE(of, dw9719_of_table);"
+if marker not in src:
+    raise SystemExit("Could not find of_table marker")
+
+src = src.replace(marker, marker + "\n" + table)
+
+# ---------------------------------------------------------------
+# 2. Add .id_table = dw9719_id_table inside the i2c_driver struct
+# ---------------------------------------------------------------
+# Look for the probe line and insert the id_table after it
+old = ".probe = dw9719_probe,"
+new = ".probe = dw9719_probe,\n\t.id_table = dw9719_id_table,"
+if old not in src:
+    raise SystemExit("Could not find probe line")
+
+src = src.replace(old, new, 1)
+
+Path("dw9719.c").write_text(src)
+print("Source patched successfully")
+PY
 
 # Minimal Makefile
 cat > Makefile << EOF
 obj-m := dw9719.o
 KDIR := /lib/modules/${KERNEL}/build
+PWD  := \$(shell pwd)
+
 all:
 	\$(MAKE) -C \$(KDIR) M=\$(PWD) modules
+
+clean:
+	\$(MAKE) -C \$(KDIR) M=\$(PWD) clean
 EOF
 
 # Build
-make
+make -j$(nproc)
 
-# Install as override
-install -D -m 644 dw9719.ko /usr/lib/modules/${KERNEL}/updates/dw9719.ko
-depmod -a ${KERNEL}
+# Install as override (this wins over the in-tree module)
+install -D -m 644 dw9719.ko "/usr/lib/modules/${KERNEL}/updates/dw9719.ko"
+depmod -a "${KERNEL}"
 
-echo "Fixed dw9719 installed for $KERNEL"
+echo "✓ Fixed dw9719.ko installed for $KERNEL"
+ls -l "/usr/lib/modules/${KERNEL}/updates/dw9719.ko"
