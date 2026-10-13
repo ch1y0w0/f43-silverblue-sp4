@@ -98,6 +98,10 @@ modules:
         # utilities
         - fira-code-fonts
         - gnome-tweaks
+        - gnome-themes-extra
+        - gtk-murrine-engine
+        - sassc
+        - glib2-devel
 
   # 6) Some default tweaks
   - type: dnf
