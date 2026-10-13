@@ -33,10 +33,10 @@ modules:
       allow-erasing: true
       packages:
         - kernel-surface
-	- kernel-surface-devel
-	- gcc
-	- make
-	- elfutils-libelf-devel
+        - kernel-surface-devel
+        - gcc
+        - make
+        - elfutils-libelf-devel
         - iptsd
         - libwacom-surface
         - libwacom-surface-data
@@ -73,7 +73,7 @@ modules:
         - libcamera-ipa
         - libcamera-tools
         - libcamera-gstreamer
-	- libcamera-qcam
+        - libcamera-qcam
         - pipewire-plugin-libcamera
         # video / audio
         - libva-utils
