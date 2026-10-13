@@ -41,8 +41,8 @@ modules:
         - libwacom-surface
         - libwacom-surface-data
         - surface-secureboot
-        - surface-control
         - mullvad-vpn
+        - mullvad-browser
 
   # 4) RPM Fusion (free + nonfree): codecs and Intel iHD driver
   - type: dnf
@@ -102,6 +102,9 @@ modules:
         - gtk-murrine-engine
         - sassc
         - glib2-devel
+        - ImageMagick
+        - optipng
+        - gtk2-engines
 
   # 6) Some default tweaks
   - type: dnf
@@ -125,22 +128,23 @@ modules:
         scope: system
         # If no repo information is specified, Flathub will be used by default
         install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
           - org.gnome.Loupe
+          - com.github.tchx84.Flatseal
+          - com.mattjakeman.ExtensionManager
+          - it.mijorus.gearlever
+          - org.libreoffice.LibreOffice
+          - io.github.celluloid_player.Celluloid
+          - org.gnome.Snapshot
+        scope: user # Also add Flathub user repo
+          - org.mozilla.firefox
           - com.brave.Browser
           - com.spotify.Client
           - org.telegram.desktop
-          - com.github.tchx84.Flatseal
           - md.obsidian.Obsidian
-          - com.mattjakeman.ExtensionManager
-          - it.mijorus.gearlever
           - com.visualstudio.code
-          - org.libreoffice.LibreOffice
           - com.ktechpit.whatsie
           - dev.vencord.Vesktop
           - com.github.unrud.VideoDownloader
-          - io.github.celluloid_player.Celluloid
-      - scope: user # Also add Flathub user repo, but no user packages
 
   # 7) Enable necessary things
   - type: systemd
