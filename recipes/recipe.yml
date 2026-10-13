@@ -102,6 +102,7 @@ modules:
         - gtk-murrine-engine
         - sassc
         - glib2-devel
+        - libxml2
         - ImageMagick
         - optipng
         - gtk2-engines
