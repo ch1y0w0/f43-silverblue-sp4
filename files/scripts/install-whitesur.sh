@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# WhiteSur's lib-core.sh dies silently when $USER is empty (no login session in a build)
+export USER=root
+export SUDO_USER=root
+export HOME=/root
+
 command -v sassc >/dev/null || { echo "sassc missing (add to dnf list)"; exit 1; }
 command -v glib-compile-resources >/dev/null || { echo "glib2-devel missing (add to dnf list)"; exit 1; }
 
