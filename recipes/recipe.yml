@@ -33,6 +33,10 @@ modules:
       allow-erasing: true
       packages:
         - kernel-surface
+	- kernel-surface-devel
+	- gcc
+	- make
+	- elfutils-libelf-devel
         - iptsd
         - libwacom-surface
         - libwacom-surface-data
@@ -69,6 +73,7 @@ modules:
         - libcamera-ipa
         - libcamera-tools
         - libcamera-gstreamer
+	- libcamera-qcam
         - pipewire-plugin-libcamera
         # video / audio
         - libva-utils
@@ -152,14 +157,19 @@ modules:
   - type: script
     scripts:
       - iiosp-selinux-fix.sh
+  
+  # 10) Custom fix for the camera
+  - type: script
+    scripts:
+      - build-dw9719-fix.sh
 
-  # 10) Custom iptsd.conf
+  # 11) Custom iptsd.conf
   - type: files
     files:
       - source: system/etc/iptsd.conf
         destination: /etc/iptsd.conf
 
-  # 11) Rebuild initramfs for the new kernel (must be last before signing)
+  # 12) Rebuild initramfs for the new kernel (must be last before signing)
   - type: script
     scripts:
       - regen-initramfs.sh
