@@ -1,10 +1,13 @@
 ---
+# Kinonite Edition for When i'm in KDE Mood!
+# I just feel like although gnome feels more tablet-ish, it's too opinioned.
+
 # image will be published to ghcr.io/<user>/<name>
-name: f43-silverblue-sp4
+name: f44-kinoite-sp4
 
-description: My personal blue-build image based on fedora silverblue 44 for Sutface Pro 4
+description: My personal blue-build image based on fedora kinoite 44 for Sutface Pro 4
 
-base-image: ghcr.io/ublue-os/silverblue-main
+base-image: ghcr.io/ublue-os/kinoite-main
 image-version: latest
 
 # module configuration, executed in order
@@ -42,7 +45,6 @@ modules:
         - libwacom-surface-data
         - surface-secureboot
         - mullvad-vpn
-        - mullvad-browser
 
   # 4) RPM Fusion (free + nonfree): codecs and Intel iHD driver
   - type: dnf
@@ -87,8 +89,6 @@ modules:
         - distrobox
         - toolbox
         - podman
-        - moby-engine
-        - docker-compose
         - git
         - python3
         - python3-pip
@@ -98,8 +98,6 @@ modules:
         - fuse-sshfs
         # utilities
         - fira-code-fonts
-        - gnome-tweaks
-        - gnome-themes-extra
         - gtk-murrine-engine
         - sassc
         - glib2-devel
@@ -130,13 +128,10 @@ modules:
       - notify: true
         scope: system
         install:
-          - org.gnome.Loupe
+          - org.flameshot.Flameshot
           - com.github.tchx84.Flatseal
-          - com.mattjakeman.ExtensionManager
           - it.mijorus.gearlever
           - org.libreoffice.LibreOffice
-          - io.github.celluloid_player.Celluloid
-          - org.gnome.Snapshot
 
       # User Flatpaks (installed per-user)
       - notify: true
@@ -150,7 +145,9 @@ modules:
           - com.visualstudio.code
           - com.ktechpit.whatsie
           - dev.vencord.Vesktop
-          - com.github.unrud.VideoDownloader
+          - io.github.mhogomchungu.media-downloader
+          - net.mullvad.MullvadBrowser
+          - org.kde.haruna
 
   # 7) Enable necessary things
   - type: systemd
@@ -171,7 +168,7 @@ modules:
   - type: script
     scripts:
       - iiosp-selinux-fix.sh
-  
+
   # 10) Custom fix for the camera - No Longer Needed Thanks to the New 7.2 Kernel Update!
   #- type: script
     #scripts:
@@ -182,11 +179,6 @@ modules:
     files:
       - source: system/etc/iptsd.conf
         destination: /etc/iptsd.conf
-
-  # 12) Apply custom Whitesur themes# 10) Custom fix for the camera
-  - type: script
-    scripts:
-      - install-whitesur.sh
 
   # 12) Rebuild initramfs for the new kernel (must be last before signing)
   - type: script

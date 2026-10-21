@@ -1,0 +1,195 @@
+---
+# Gnome Knows Best 🥸
+# image will be published to ghcr.io/<user>/<name>
+name: f43-silverblue-sp4
+
+description: My personal blue-build image based on fedora silverblue 44 for Sutface Pro 4
+
+base-image: ghcr.io/ublue-os/silverblue-main
+image-version: latest
+
+# module configuration, executed in order
+# you can include multiple instances of the same module
+modules:
+
+  # 1) Copy everything in ./files/system to image root /
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # 2) Remove the stock Fedora kernel (script lives in files/scripts/)
+  - type: script
+    scripts:
+      - remove-stock-kernel.sh
+
+  # 3) Add the linux-surface repo and install kernel + Surface utilities + Mullvad VPN
+  - type: dnf
+    repos:
+      files:
+        - https://pkg.surfacelinux.com/fedora/linux-surface.repo
+        - https://repository.mullvad.net/rpm/stable/mullvad.repo
+      cleanup: true
+    install:
+      allow-erasing: true
+      packages:
+        - kernel-surface
+        - kernel-surface-devel
+        - gcc
+        - make
+        - elfutils-libelf-devel
+        - iptsd
+        - libwacom-surface
+        - libwacom-surface-data
+        - surface-secureboot
+        - mullvad-vpn
+
+  # 4) RPM Fusion (free + nonfree): codecs and Intel iHD driver
+  - type: dnf
+    repos:
+      nonfree: rpmfusion
+    install:
+      allow-erasing: true   # swaps ffmpeg-free for RPM Fusion's ffmpeg
+      packages:
+        - ffmpeg                          # RPM Fusion free
+        - ffmpeg-libs                     # RPM Fusion free
+        - libavcodec-freeworld            # RPM Fusion free
+        - gstreamer1-plugins-bad-freeworld # RPM Fusion free
+        - gstreamer1-plugins-ugly         # RPM Fusion free
+        - intel-media-driver              # RPM Fusion nonfree (Skylake iHD VA-API)
+
+  # 5) Fedora repos: hardware, camera, audio, dev tools
+  - type: dnf
+    install:
+      skip-unavailable: true
+      packages:
+        # sensors / power
+        - iio-sensor-proxy
+        - thermald
+        - powertop
+        - lm_sensors
+        # camera
+        - libcamera
+        - libcamera-ipa
+        - libcamera-tools
+        - libcamera-gstreamer
+        - libcamera-qcam
+        - pipewire-plugin-libcamera
+        # video / audio
+        - libva-utils
+        - gstreamer1-plugin-libav
+        - gstreamer1-vaapi
+        - alsa-utils
+        # network
+        - iw
+        - net-tools
+        # containers + dev
+        - distrobox
+        - toolbox
+        - podman
+        - git
+        - python3
+        - python3-pip
+        - python3-setuptools
+        - openssh-clients
+        - btop
+        - fuse-sshfs
+        # utilities
+        - fira-code-fonts
+        - gnome-tweaks
+        - gnome-themes-extra
+        - gtk-murrine-engine
+        - sassc
+        - glib2-devel
+        - libxml2
+        - ImageMagick
+        - optipng
+        - gtk2-engines
+
+  # 6) Some default tweaks
+  - type: dnf
+    repos:
+      copr:
+        - atim/starship
+        - atim/ubuntu-fonts
+    install:
+      packages:
+        - micro
+        - starship
+        - ubuntu-family-fonts
+    remove:
+      packages:
+        - firefox
+        - firefox-langpacks
+
+  - type: default-flatpaks
+    configurations:
+      # System-wide Flatpaks (available to all users)
+      - notify: true
+        scope: system
+        install:
+          - org.gnome.Loupe
+          - com.github.tchx84.Flatseal
+          - com.mattjakeman.ExtensionManager
+          - it.mijorus.gearlever
+          - org.libreoffice.LibreOffice
+          - io.github.celluloid_player.Celluloid
+          - org.gnome.Snapshot
+          - io.github.realmazharhussain.GdmSettings
+
+      # User Flatpaks (installed per-user)
+      - notify: true
+        scope: user
+        install:
+          - org.mozilla.firefox
+          - com.brave.Browser
+          - com.spotify.Client
+          - org.telegram.desktop
+          - md.obsidian.Obsidian
+          - com.visualstudio.code
+          - com.ktechpit.whatsie
+          - dev.vencord.Vesktop
+          - com.github.unrud.VideoDownloader
+
+  # 7) Enable necessary things
+  - type: systemd
+    system:
+      enabled:
+        - thermald.service
+        - docker.socket
+        - iio-sensor-proxy.service
+        - mullvad-daemon.service
+        - mullvad-early-boot-blocking.service
+
+  # 8) Script to fix the iptsd service for pen stopping after boot
+  - type: script
+    scripts:
+      - iptsd-fix.sh
+
+  # 9) Script to fix selinux preventing iio-sensor-proxy from reading and changing orientation
+  - type: script
+    scripts:
+      - iiosp-selinux-fix.sh
+  
+  # 10) Custom fix for the camera - No Longer Needed Thanks to the New 7.2 Kernel Update!
+  #- type: script
+    #scripts:
+      #- build-dw9719-fix.sh
+
+  # 11) Custom iptsd.conf
+  - type: files
+    files:
+      - source: system/etc/iptsd.conf
+        destination: /etc/iptsd.conf
+
+  # 12) Apply custom Whitesur themes# 10) Custom fix for the camera
+  - type: script
+    scripts:
+      - install-whitesur.sh
+
+  # 13) Rebuild initramfs for the new kernel (must be last before signing)
+  - type: script
+    scripts:
+      - regen-initramfs.sh
+
+  - type: signing
